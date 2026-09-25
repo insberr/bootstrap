@@ -58,7 +58,32 @@
         stardust-xr-server = inputs.server;
       };
 
-      componentsFor = system: lib.mapAttrs (_: flake: flake.packages.${system}.default) componentInputs;
+      withDesktopData =
+        pkgs: name: flake:
+        let
+          pkg = flake.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        in
+        pkgs.symlinkJoin {
+          name = "${name}-${pkg.version or "unstable"}";
+          paths = [ pkg ];
+          postBuild = ''
+            for f in ${flake}/data/*.desktop; do
+              [ -e "$f" ] || continue
+              install -Dm0644 "$f" "$out/share/applications/$(basename "$f")"
+            done
+            for f in ${flake}/data/*.metainfo.xml; do
+              [ -e "$f" ] || continue
+              install -Dm0644 "$f" "$out/share/metainfo/$(basename "$f")"
+            done
+          '';
+          passthru.unwrapped = pkg;
+          meta = (pkg.meta or { }) // {
+            mainProgram = pkg.meta.mainProgram or pkg.pname or name;
+          };
+        };
+
+      componentsFor =
+        system: lib.mapAttrs (withDesktopData nixpkgs.legacyPackages.${system}) componentInputs;
     in
     {
       packages = forAllSystems (
@@ -171,7 +196,7 @@
 
       devShells = forAllSystems (system: {
         default = pkgsFor.${system}.mkShell {
-          inputsFrom = lib.attrValues (componentsFor system);
+          inputsFrom = map (p: p.unwrapped) (lib.attrValues (componentsFor system));
           packages = with pkgsFor.${system}; [
             just
             cargo

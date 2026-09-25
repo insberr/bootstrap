@@ -41,6 +41,22 @@ sudo pacman -S wayland alsa-lib libffi libinput libxkbcommon
 git clone --recursive <repo-url>
 ```
 
+### NixOS
+Start the stardust `server`, `flatland`, `gravity`, and `black-hole` (this configuration is also known as `telescope`)
+```sh
+nix run github:StardustXR/bootstrap
+```
+
+Run the server without any components
+```sh
+nix run github:StardustXR/bootstrap#stardust-xr-server
+```
+
+All components are also included in the flake. For example, to run `comet`:
+```sh
+nix run github:StardustXR/bootstrap#comet
+```
+
 ## Commands
 
 | Command | Description |
